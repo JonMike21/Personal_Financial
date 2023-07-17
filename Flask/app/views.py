@@ -40,7 +40,6 @@ def test():
         data = request.get_json()
         value1 = data['user']
         value2 = data['test']
-        
         """
     value1 = request.form.get('name')
     value2 = request.form.get('cost')
