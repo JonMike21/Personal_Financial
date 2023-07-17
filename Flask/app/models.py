@@ -63,5 +63,35 @@ class IncomeChannel(db.Model):
         self.monthlyEarning = monthlyEarning
 
     def __repr__(self):
-        return '<IncomeChannel %r>' % self.namex
+        return '<IncomeChannel %r>' % self.name
+    
+
+class Illustrations(db.Model):
+    __tablename__ = 'illustrations'
+
+    iid = db.Column(db.Integer, primary_key=True) #, unique=True
+    illustitle = db.Column(db.String(80))
+    piece = db.Column(db.String(80)) #when you create it automatically get added to the list of tings
+    stage = db.Column(db.String(80)) #level it reach inna the work. So final par of work, sketch, inbetween etc
+    universe = db.Column(db.String(80))#what art concept its from, none can be one?
+    illcription = db.Column(db.String(1024))
+    dateCreated = db.Column(db.DateTime, nullable=False)
+    dateCompleted = db.Column(db.DateTime, nullable=False)
+    medium = db.Column(db.String(80)) #platform used, eg photoshop or pencil etc
+    genre = db.Column(db.String(80))
+   
+
+    def __init__(self, illustitle, piece, stage, universe, illcription, dateCreated, dateCompleted, medium, genre):
+        self.illustitle = illustitle
+        self.piece = piece
+        self.stage = stage
+        self.universe = universe
+        self.illcription = illcription
+        self.dateCreated = dateCreated
+        self.dateCompleted = dateCompleted
+        self.medium = medium
+        self.genre = genre
+
+    def __repr__(self):
+        return '<Illustration %r>' % (self.illustitle)
     
