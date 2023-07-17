@@ -18,6 +18,7 @@ void main() async{
     WindowManager.instance.setMinimumSize(const Size(768, 736));
 
   }
+  
   runApp(MyApp());
   
 
@@ -40,7 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
+      create: (context) => MyAppState(flaskConnect),
       child: MaterialApp(
         debugShowCheckedModeBanner: false, //removes the debug tag
         title: 'Flutter Demo',
@@ -57,7 +58,24 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   //Lists
+  final DataConnection flaskConnect;
 
+  MyAppState(this.flaskConnect);
+  
+
+  void fetchDataExample() async {
+    try {
+      final data = await flaskConnect.fetchData('test2');
+
+      // Process the fetched data
+      print('Fetched data: $data');
+      // Do something with the data
+    } catch (e) {
+      print('Error fetching data: $e');
+      // Handle the error
+    }
+  }
+  
   //what can be done is to input data into these lists on startup from database.
   var transactionList = [];
   var expenseList = [];
@@ -121,7 +139,7 @@ class MyAppState extends ChangeNotifier {
     //print (double.parse(exp.replaceAll(RegExp(r'[^0-9,.]'),'')));
     notifyListeners();
   }
-
+  
 
 }
 class MyHomePage extends StatefulWidget {
@@ -386,6 +404,52 @@ class _LoginPageState extends State<LoginPage> {
                   side: BorderSide.none, //Removes border colour from button
                 ),
                 onPressed: (){ //After clicking Login
+                  
+                  var sen = MyApp.of(context).flaskConnect.fetchData('test2');
+                  sen.then((data){
+                    var expenseList = data['expense'];
+                    print('Message: $data');
+                    for (var expense in expenseList) {
+                      var ttlCost = num.parse(expense['ttl_cost']);                 
+                      appState.balance += ttlCost;
+                    }
+
+                  }); 
+                  
+                  //HERERRREREE
+                  var populate = MyApp.of(context).flaskConnect.fetchData('populate');
+                  populate.then((data){
+                    var expenseList = data['expense'];
+                    print('Message: $expenseList');
+                    for (var expense in expenseList) {
+                      var name = expense['name'];   
+                      var cost = num.parse(expense['cost']); 
+                      var tier = expense['tier'];               
+                      var category = expense['category']; 
+                      var frequency = expense['frequency']; 
+                      var date = expense['date']; 
+
+                      appState.expenseList.add("$name ${cost.toStringAsFixed(2)}"); //Interpolation
+                      appState.expenseCostList.add((name, cost)); // Separate list for calcualtions
+                    }
+
+                    var incomeList = data['income'];
+                    print('Message: $incomeList');
+                    for (var income in incomeList) {
+                      var name = income['name'];   
+                      var monthlyEarning = num.parse(income['monthly_earning']); 
+                      var date = income['date']; 
+
+                      appState.incomeList.add("$name ${monthlyEarning.toStringAsFixed(2)}"); //Interpolation
+                      appState.incomeValueList.add((name, monthlyEarning)); // Separate list for calcualtions
+                    }
+
+                  }); 
+
+
+
+                  //var ttl = sen['ttl_cost'];
+                  //appState.balance -= sentData['ttl_cost'];
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => MainPage()), //Goes to main page
@@ -1609,8 +1673,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             onPressed: (){
                               setState(() {
                                 //test(appState.expenseName.toString(),appState.expenseCost.toStringAsFixed(2));
-                                final sendData = {'name': appState.expenseName.toString(), 'cost': appState.expenseCost.toStringAsFixed(2)};
-                                final sentData = MyApp.of(context).flaskConnect.sendData('test', sendData);
+                                //final sentData2 = MyApp.of(context).flaskConnect.fetchData('test2');
+                                
+                                //final sendData = {'name': appState.expenseName.toString(), 'cost': appState.expenseCost.toStringAsFixed(2)};
+                                //final sentData = MyApp.of(context).flaskConnect.sendData('test', sendData);
+
+                                final sendExpense= {'name': appState.expenseName.toString(), 'cost': appState.expenseCost.toStringAsFixed(2), 'tier': "1", 'category': 'want', 'frequency': 'once'};                                
+                                final sentExpense= MyApp.of(context).flaskConnect.sendData('expense/add', sendExpense);
 
                                 //  ADD EXPENSE TO EXPENSE LIST
                                 appState.expenseList.add(("${appState.expenseName} ${appState.expenseCost.toStringAsFixed(2)}")); //Interpolation
@@ -1963,6 +2032,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: IconButton(
                             onPressed: (){
                               setState(() {
+                                final sendIncomeChannel = {'name': appState.incomeName.toString(), 'monthly_earning': appState.incomeValue.toStringAsFixed(2)};                                
+                                final sentIncomeChannel = MyApp.of(context).flaskConnect.sendData('incomeChannel/add', sendIncomeChannel);
+
                                 //  ADD INCOME TO INCOME LIST
                                 appState.incomeList.add(("${appState.incomeName} ${appState.incomeValue.toStringAsFixed(2)}")); //Interpolation
                                 appState.incomeValueList.add((appState.incomeName, appState.incomeValue)); // Separate list for calcualtions

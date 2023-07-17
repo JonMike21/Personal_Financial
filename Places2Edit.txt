@@ -4,7 +4,7 @@ for (var expense in appState.expenseList) //Get all expenses //I would pull from
 
 MaterialPageRoute(builder: (context) => SignUpPage()) //Right here we validate the data.
 
-onPressed: (){ //After clicking Login   //add user info
+onPressed: (){ //After clicking Login   // all add user info FROM DB HERE
 
 tooltip: 'Complete', onPressed: () { // Go to home page //I would add data here
 

@@ -7,12 +7,14 @@ This file contains the routes for your application.
 import os
 from app import app,db
 from flask import render_template, request, redirect, url_for, flash, session, abort,send_from_directory,jsonify
-from app.models import Illustrations
-#from app.forms import IllustrationForm
+from app.models import ExpenseCategories,ExpenseList,IncomeChannel
 from werkzeug.utils import secure_filename
-
+import json
+from decimal import Decimal
+import datetime
 
 #to run flask, run flask --app Flask/app --debug run
+#to migrate and dem tings deh, run  flask --app=Flask/App db init  and change init to smthn migrate/upgrade.
 
 ###
 # Routing for your application.
@@ -23,17 +25,12 @@ def home():
     """Render website's home page."""
     return render_template('home.html')
 
-@app.route('/jmf')
-def jmfhome():
-    #ppic = db.session.execute(db.select(Photography)).scalars() 
-    return render_template('jmf.html')#,ppic=ppic)
-
 @app.route('/about/')
 def about():
     """Render the website's about page."""
     return render_template('about.html', name="Bob")
 
-@app.route('/test',methods=['POST'])
+@app.route('/test',methods=['POST']) #sen ttl category to db
 def test():
     if (request.method=='POST'):
         """ 
@@ -50,45 +47,48 @@ def test():
     #return render_template('about.html', name="Bob")
     return jsonify(response_data)
 
-@app.route("/photo/add", methods=['POST', 'GET'])
-def addPhoto():
-     
-    test='Love'
-    #pseriesList.append((test,test))
-    form=IllustrationForm()
-    if request.method == 'POST':
-        if form.validate_on_submit:
-            genre = form.genre.data
-            series = form.series.data
-            photodata = form.photo.data
-            photo = secure_filename(photodata.filename) #Name of photo
-            photopath=os.path.join(app.config['P_FOLDER'],photo)
-            photodata.save(photopath)
+@app.route('/test2',methods=['GET']) #get from db.
+def test2():
+    p_list =[]
+    """ 
+    #expense = Expense.query.filter_by(id=1).first()
+    expense=db.session.execute(db.select(ExpenseCategories)).scalars()
+    expense_json = json.dumps(expense.serialize())
+    return jsonify(expense=expense_json)
+    """
 
-            """ 
-            # opening the file in read mode
-            my_file = open("test.txt", "w")
+    """
+    expense = db.session.execute(db.select(ExpenseCategories)).scalars()
+    expense_list = [item_to_dict(item) for item in expense]
+    expense_json = json.dumps(expense_list, default=convert_decimal_to_float)
+    print(expense_json)
+    print(jsonify(expense_list))
+    return jsonify(expense=expense_json)
+    """
+    expense = db.session.execute(db.select(ExpenseCategories)).scalars()
+    for g in expense:
+            p_list.append({
+                'id': g.id,
+                'name': g.name,
+                'ttl_cost': g.ttl_cost
+                        })
+    print(jsonify(expense=p_list))
+    return jsonify(expense=p_list)
 
-            my_file.write(genre)
-            
-            my_file.close()
+""" #unecessary functions
+def item_to_dict(item):
+    return {
+        'id': item.id,
+        'name': item.name,
+        'ttl_cost': item.ttl_cost}
 
-            """
-            #add a button to the side to add a section
-
-
-           
-            
-            # new_photo = Photography(photo,x,cmodel,genre,series)
-            # db.session.add(new_photo)
-            # db.session.commit()
-            #photodata.save(os.path.join(app.config['UPLOAD_FOLDER'],photo))
-            
-            flash('Property successfully added!', 'success')
-            #return redirect(url_for('showProperties'))
+def convert_decimal_to_float(value):
+    if isinstance(value, Decimal):
+        return float(value)
+    raise TypeError(f'Object of type {value.__class__.__name__} is not JSON  serializable.')
 
 
-    return render_template('addPhoto.html')
+
 
 @app.route('/puploads/<filename>')
 def get_image(filename):
@@ -98,7 +98,68 @@ def get_image(filename):
 def showProperties():
     #ppic = db.session.execute(db.select(Photography)).scalars()
     return render_template('show_properties.html')#,ppic=ppic) 
+"""
 
+@app.route('/expense/add',methods=['POST']) #Sends expense added to db
+def add_expense():
+    if (request.method=='POST'):
+        
+        name = request.form.get('name')
+        cost = request.form.get('cost')
+        tier = request.form.get('tier')
+        category = request.form.get('category')
+        frequency = request.form.get('frequency')
+        date = datetime.datetime.now() #assuming we get current date/time and place it in the DB
+        
+        print(name,cost,tier,category,frequency,date)     
+        newExpense = ExpenseList(name,cost,tier,category,frequency,date)
+        db.session.add(newExpense)
+        db.session.commit()        
+
+        response_data = {'message': 'Success'}
+        return jsonify(response_data)
+
+@app.route('/incomeChannel/add',methods=['POST']) #Sends income_channel added to db
+def add_income_channel():
+    if (request.method=='POST'):
+        
+        name = request.form.get('name')
+        monthly_earning = request.form.get('monthly_earning')
+        date = datetime.datetime.now() #assuming we get current date/time and place it in the DB
+        
+        print(name,monthly_earning,date)     
+        newIncomeChannel = IncomeChannel(name,monthly_earning,date)
+        db.session.add(newIncomeChannel)
+        db.session.commit()        
+
+        response_data = {'message': 'Success'}
+        return jsonify(response_data)
+
+@app.route('/populate',methods=['GET']) #get from db expense list and income list.
+def populate():
+    e_list = []
+    i_list = []
+
+    expenses = db.session.execute(db.select(ExpenseList)).scalars() #also addd where the account id is the same as logged in
+    for g in expenses: 
+            e_list.append({
+                'name': g.name,
+                'cost': g.cost,
+                'tier': g.tier,
+                'category': g.category,
+                'frequency': g.frequency,
+                'date': g.date
+                        })
+    incomechannels = db.session.execute(db.select(IncomeChannel)).scalars() #also add where the account id is the same as logged in
+    for g in incomechannels: 
+            i_list.append({
+                'name': g.name,
+                'monthly_earning': g.monthly_earning,
+                'date': g.date
+                        })
+            
+    print(jsonify(expense=e_list,income=i_list))
+    return jsonify(expense=e_list,income=i_list)
 ###
 # The functions below should be applicable to all Flask apps.
 ###
